@@ -28,7 +28,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <Arduino.h>
+#if defined(ARDUINO) && ARDUINO >= 100
+  #include <Arduino.h>
+#else
+  #define PROGMEM
+  #include "../../remote-wiring/source/Serial/IStream.h"
+  #include "ISystemTime.h"
+#endif // defined(ARDUINO)
+
 #include <ArduinoJson.h>
 
 #include "Attr.h"
@@ -60,7 +67,7 @@ public:
     VirtualShield();
 
 	void begin(long bitRate = DEFAULT_BAUDRATE);
-	void setPort(int port);
+	//void setPort(int port);
 
 	bool hasError(ShieldEvent* shieldEvent = NULL);
 	bool checkSensors(int watchForId = 0, int32_t timeout = 0, int waitForResultId = -1);
@@ -115,7 +122,7 @@ public:
 	/// Enables or disables block() to block for specific id-based responses.
 	/// </summary>
 	void enableAutoBlocking(bool enable) {
-		this->allowAutoBlocking = enable; 
+		this->allowAutoBlocking = enable;
 	}
 
 	int parseToHash(const char* text, unsigned int *hash, int hashCount, char separator = ' ', unsigned int length = -1);
@@ -129,7 +136,7 @@ protected:
 
 	void flush();
 
-    Stream* _VShieldSerial;
+    Microsoft::Maker::Serial::IStream* _VShieldSerial;
 private:
 	int nextId = 1;
 	ShieldEvent recentEvent;
@@ -141,4 +148,4 @@ private:
     bool processInChar(ShieldEvent* shieldEvent, bool& hasEvent, char c);
 };
 
-#endif 
+#endif

@@ -23,27 +23,31 @@
 */
 
 #include "VirtualShield.h"
+
+#if defined(ARDUINO) && ARDUINO >= 100
+  // Define the serial port that is used to talk to the virtual shield.
+  #define VIRTUAL_SERIAL_PORT0 Serial
+
+  // If it has dual serial ports (Leonardo), prefer the second one (pins 0, 1) for bluetooth.
+  #if defined(__AVR_ATmega32U4__)
+    #define VIRTUAL_SERIAL_PORT1 Serial1
+    #define debugSerial
+    #define debugSerialIn
+  #else
+    #define VIRTUAL_SERIAL_PORT1 Serial
+  #endif
+#else
+#endif // defined(ARDUINO)
+
 #if defined(_WINDOWS_)
   #include <malloc.h>
 #else
   #include <alloca.h>
 #endif
 #include <string.h>
-  
+
 #include <ArduinoJson.h>
 #include "SensorModels.h"
-
-// Define the serial port that is used to talk to the virtual shield.
-#define VIRTUAL_SERIAL_PORT0 Serial
-
-// If it has dual serial ports (Leonardo), prefer the second one (pins 0, 1) for bluetooth.
-#if defined(__AVR_ATmega32U4__)
-#define VIRTUAL_SERIAL_PORT1 Serial1
-#define debugSerial
-#define debugSerialIn
-#else 
-#define VIRTUAL_SERIAL_PORT1 Serial
-#endif
 
 static const int SERIAL_ERROR = -1;
 static const int SERIAL_SUCCESS = 0;
@@ -91,7 +95,7 @@ int sensorCount = 0;
 /// </summary>
 VirtualShield::VirtualShield()
 {
-    _VShieldSerial = &VIRTUAL_SERIAL_PORT1;
+    //_VShieldSerial = &VIRTUAL_SERIAL_PORT1;
 }
 
 /// <summary>
@@ -108,12 +112,12 @@ bool VirtualShield::addSensor(Sensor* sensor) {
 	sensors[sensorCount++] = sensor;
 	return true;
 }
-
+/*
 /// <summary>
 /// Sets the port for bluetooth (this only works for __AVR_ATmega32U4__ where there are more than one port).
 /// </summary>
 /// <param name="port">The port.</param>
-void VirtualShield::setPort(int port) 
+void VirtualShield::setPort(int port)
 {
 	if (port == 0) {
 		_VShieldSerial = &VIRTUAL_SERIAL_PORT0;
@@ -122,15 +126,15 @@ void VirtualShield::setPort(int port)
 		_VShieldSerial = &VIRTUAL_SERIAL_PORT1;
 	}
 }
-
+*/
 /// <summary>
 /// Begins the specified bit rate.
 /// </summary>
 /// <param name="bitRate">The bit rate to use for the virtual shield serial connection.</param>
 void VirtualShield::begin(long bitRate)
 {
-    reinterpret_cast<HardwareSerial *>(_VShieldSerial)->begin(bitRate);
-	delay(500);
+    _VShieldSerial->begin(static_cast<uint32_t>(bitRate), Microsoft::Maker::Serial::SerialConfig::SERIAL_8N1);
+	ISystemTime::delay(500);
     flush();
     sendStart();
 
@@ -159,7 +163,7 @@ int VirtualShield::block(int id, bool blocking, int32_t timeout, int watchForRes
 void VirtualShield::flush()
 {
 	_VShieldSerial->flush();
-	lastOpenRequest = millis();
+	lastOpenRequest = ISystemTime::millis();
 }
 
 long lastClosure = 0;
@@ -174,14 +178,14 @@ bool inEvent = false;
 bool VirtualShield::getEvent(ShieldEvent* shieldEvent) {
 	bool hasEvent = false;
 
-	if (_VShieldSerial->available() == 0 && millis() > lastOpenRequest + requestInterval) //and timing!
+	if (_VShieldSerial->available() == 0 && ISystemTime::millis() > lastOpenRequest + requestInterval) //and timing!
 	{
 #ifdef debugSerial
 		Serial.print(AWAITING_MESSAGE);
 #endif
 		_VShieldSerial->write(AWAITING_MESSAGE);
         _VShieldSerial->flush();
-		lastOpenRequest = millis();
+		lastOpenRequest = ISystemTime::millis();
 	}
 
 	bool hadData = false;
@@ -195,7 +199,7 @@ bool VirtualShield::getEvent(ShieldEvent* shieldEvent) {
 
 		if (readBufferIndex < maxReadBuffer-1) {
 			readBuffer[readBufferIndex++] = c;
-        } 
+        }
         else
         {
             int i = readBufferIndex;
@@ -221,7 +225,7 @@ bool VirtualShield::getEvent(ShieldEvent* shieldEvent) {
                 i--;
             }
         }
-		
+
         if (processInChar(shieldEvent, hasEvent, c))
         {
             break;
@@ -230,7 +234,7 @@ bool VirtualShield::getEvent(ShieldEvent* shieldEvent) {
 
 	if (hadData)
 	{
-		lastOpenRequest = millis() - requestInterval + perMessageInterval;
+		lastOpenRequest = ISystemTime::millis() - requestInterval + perMessageInterval;
 	}
 
     if (lastClosure - lastOpening > requestInterval)
@@ -246,18 +250,18 @@ bool VirtualShield::getEvent(ShieldEvent* shieldEvent) {
 /// Process single incoming character - pass to full handler when recognized
 /// </summary>
 /// <param name="shieldEvent">The shield event.</param>
-bool VirtualShield::processInChar(ShieldEvent* shieldEvent, bool& hasEvent, char c) 
+bool VirtualShield::processInChar(ShieldEvent* shieldEvent, bool& hasEvent, char c)
 {
     if (c == '{') {
         if (bracketCount++ == 0)
         {
-            lastOpening = millis();
+            lastOpening = ISystemTime::millis();
         }
     }
     else if (c == '}') {
         if (--bracketCount < 1) {
             bracketCount = 0;
-            lastClosure = millis();
+            lastClosure = ISystemTime::millis();
 
             if (readBufferIndex < maxReadBuffer) {
                 readBuffer[readBufferIndex++] = '\0';
@@ -267,7 +271,7 @@ bool VirtualShield::processInChar(ShieldEvent* shieldEvent, bool& hasEvent, char
 #endif
                 _VShieldSerial->write(AWAITING_MESSAGE);
                 _VShieldSerial->flush();
-                lastOpenRequest = millis();
+                lastOpenRequest = ISystemTime::millis();
                 onStringReceived(readBuffer, readBufferIndex, shieldEvent);
                 inEvent = false;
                 hasEvent = true;
@@ -303,7 +307,7 @@ void VirtualShield::sendPingBack(ShieldEvent *)
 }
 
 /// <summary>
-/// Event called when a valid json message was received. 
+/// Event called when a valid json message was received.
 /// Dispatches to added sensors that match the incoming Type.
 /// </summary>
 /// <param name="root">The root json object.</param>
@@ -325,7 +329,7 @@ void VirtualShield::onJsonReceived(JsonObject& root, ShieldEvent* shieldEvent) {
 	shieldEvent->action = static_cast<const char *>(root["Action"]);
 	shieldEvent->actionHash = hash(shieldEvent->action);
 	shieldEvent->value = static_cast<double>(root["Value"]);
-	
+
 	if (sensorType) {
 		// special '!' Type which means remote device just connected/reconnected
 		if (sensorType[0] == SYSTEM_EVENT)
@@ -365,8 +369,8 @@ void VirtualShield::onJsonReceived(JsonObject& root, ShieldEvent* shieldEvent) {
 			if (refresh && onRefresh)
 			{
 				onRefresh(shieldEvent);
-			}					  
-		} 
+			}
+		}
 		else
 		{
 			const char sensorTypeChar = sensorType[0];
@@ -401,13 +405,15 @@ void VirtualShield::onJsonReceived(JsonObject& root, ShieldEvent* shieldEvent) {
 void VirtualShield::onJsonStringReceived(char* json, ShieldEvent* shieldEvent) {
 #if defined(_WINDOWS_)
 	DynamicJsonBuffer jsonBuffer;
-#else
+#elif defined(ARDUINO) && ARDUINO >= 100
     StaticJsonBuffer<maxJsonReadBuffer> jsonBuffer;
+#else
+    DynamicJsonBuffer jsonBuffer;
 #endif
 	JsonObject& root = jsonBuffer.parseObject(json);
 	if (root.success()) {
 		onJsonReceived(root, shieldEvent);
-	} 
+	}
 	else
 	{
 		//Serial.print("FAILED");
@@ -443,9 +449,9 @@ int VirtualShield::onStringReceived(char* buffer, size_t length, ShieldEvent* sh
 bool VirtualShield::checkSensors(int watchForId, int32_t timeout, int watchForResultId) {
 	bool hadEvents = false;
 
-	uint32_t started = millis();
+    uint32_t started = ISystemTime::millis();
 	recentEventErrorId = 0;
-	while (getEvent(&recentEvent) && (timeout == 0 || started+timeout <= millis()) ) {
+	while (getEvent(&recentEvent) && (timeout == 0 || started+timeout <= ISystemTime::millis()) ) {
 		hadEvents = (watchForId == 0 || recentEvent.id == watchForId) && (watchForResultId == -1 || recentEvent.resultId == watchForResultId);
 	}
 
@@ -488,10 +494,10 @@ int VirtualShield::waitFor(int id, uint32_t timeout, bool asSuccess, int resultI
 		return id;
 	}
 
-	timeout = timeout + millis();
+	timeout = timeout + ISystemTime::millis();
 
 	bool found = false;
-	while (!found && millis() < timeout) {
+	while (!found && ISystemTime::millis() < timeout) {
 		found = checkSensors(id, 0, resultId);
 	}
 
@@ -513,9 +519,9 @@ bool VirtualShield::hasError(ShieldEvent* shieldEvent) {
 /// </summary>
 /// <param name="serviceName">Name of the service.</param>
 /// <returns>The new id of the message or a negative error..</returns>
-int VirtualShield::beginWrite(const char* serviceName)  
+int VirtualShield::beginWrite(const char* serviceName)
 {
-	int id = nextId++; 
+	int id = nextId++;
 
 	if (nextId < 0) //let's stay positive
 	{
@@ -585,7 +591,7 @@ int VirtualShield::write(EPtr eptr)	const
 	{
 		if (sendFlashStringOnSerial(MESSAGE_QUOTE) != SERIAL_SUCCESS) return SERIAL_ERROR;
 		isArrayStarted = false;
-	} 
+	}
 	else
 	{
 		if (sendFlashStringOnSerial(MESSAGE_SEPARATOR) != SERIAL_SUCCESS) return SERIAL_ERROR;
@@ -596,8 +602,8 @@ int VirtualShield::write(EPtr eptr)	const
 		_VShieldSerial->print(eptr.key);
 #ifdef debugSerial
 		Serial.print(eptr.key);
-#endif			
-	} 
+#endif
+	}
 	else
 	{
 		if (sendFlashStringOnSerial(eptr.key) != SERIAL_SUCCESS) return SERIAL_ERROR;
@@ -675,7 +681,7 @@ int VirtualShield::writeValue(EPtr eptr, int start) const
 #endif
 		break;
 	case Long:
-		_VShieldSerial->print(eptr.longValue);
+		_VShieldSerial->print(static_cast<int32_t>(eptr.longValue));
 #ifdef debugSerial
 		Serial.print(eptr.longValue);
 #endif
@@ -786,21 +792,21 @@ int VirtualShield::sendFlashStringOnSerial(const char* flashStringAdr, int start
 	const size_t actualStart = start < 0 ? 0 : start;
 	const bool isFormatted = start > -1;
 
-#if defined(_WINDOWS_)
-	for (size_t i = actualStart; i < strlen(flashStringAdr); i++)
-	{
-		dataChar = *(flashStringAdr + i);
-#else
+#if defined(ARDUINO) && ARDUINO >= 100
 	for (size_t i = actualStart; i < strlen_PF((uint_farptr_t)flashStringAdr); i++)
 	{
 		dataChar = pgm_read_byte_near(flashStringAdr + i);
+#else
+	for (size_t i = actualStart; i < strlen(flashStringAdr); i++)
+	{
+		dataChar = *(flashStringAdr + i);
 #endif
 		if (isFormatted && dataChar == '~')
 		{
 			return i + 1;
 		}
 
-		if (encode && dataChar == '\'') 
+		if (encode && dataChar == '\'')
 		{
 			_VShieldSerial->write('\\');
 #ifdef debugSerial
