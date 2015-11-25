@@ -25,15 +25,19 @@
 #ifndef Notification_h
 #define Notification_h
 
+#include <ArduinoJson.h>
+
 #include "Sensor.h"
+#include "ShieldEvent.h"
+#include "VirtualShield.h"
 
 class Notification : public Sensor
 {
 public:
 	Notification(const VirtualShield &shield);
 
-	int toast(String message, String tag = (const char*)0, String image = (const char*)0, String audio = (const char*)0);
-	int tile(String message, String tag = (const char*)0, String image = (const char*)0);
+	int toast(const char * message, const char * tag = NULL, const char * image = NULL, const char * audio = NULL);
+	int tile(const char * message, const char * tag = NULL, const char * image = NULL);
 
 	void onJsonReceived(JsonObject& root, ShieldEvent* shieldEvent) override;
 };

@@ -23,12 +23,6 @@
 */
 
 #include "Recognition.h"
-#include "Sensor.h"
-
-extern "C" {
-#include <string.h>
-#include <stdlib.h>
-}
 
 const PROGMEM char SERVICE_NAME_RECOGNIZE[] = "RECOGNIZE";
 const PROGMEM char SPEECH_UI[] = "UI";
@@ -50,26 +44,16 @@ int Recognition::listen(char* openTextBuffer, int* length, bool useUI, long time
 {
 	this->openTextBuffer = openTextBuffer;
 	this->length = length;
-	this->openTextBuffer[0] = 0;
+	this->openTextBuffer[0] = '\0';
 	this->recognizedIndex = 0;
 	
 	EPtr eptrs[] = { EPtr(SPEECH_UI, useUI), EPtr(MS, timeout) };
-    return shield.block(writeAll(SERVICE_NAME_RECOGNIZE, eptrs, 2), onEvent == 0);
+    return shield.block(writeAll(SERVICE_NAME_RECOGNIZE, eptrs, 2), onEvent == NULL);
 }
 
 int Recognition::stop()
 {
 	return Sensor::sendStop(SERVICE_NAME_RECOGNIZE);
-}
-
-/// <summary>
-/// Recognizes the specified constricted recognition text without a UI.
-/// </summary>
-/// <param name="recognitionText">The recognition text (words or groups).</param>
-/// <returns>The id of the message. Negative if an error.</returns>
-int Recognition::listenFor(String recognitionText, bool useUI, int expectedConfidence, long timeout)
-{
-    return listenFor(recognitionText.c_str(), useUI, expectedConfidence, timeout);
 }
 
 /// <summary>
@@ -89,11 +73,11 @@ int Recognition::listenFor(const char* recognitionText, bool useUI, int expected
 /// <returns>The id of the message. Negative if an error.</returns>
 int Recognition::listenFor(EPtr constraint, bool useUI, int expectedConfidence, long timeout)
 {
-	this->openTextBuffer = 0;
+	this->openTextBuffer = NULL;
 	this->recognizedIndex = 0;
 
 	EPtr eptrs[] = { constraint, EPtr(CONFIDENCE, expectedConfidence), EPtr(SPEECH_UI, useUI), EPtr(MS, timeout) };
-	return shield.block(writeAll(SERVICE_NAME_RECOGNIZE, eptrs, 4), onEvent == 0);
+	return shield.block(writeAll(SERVICE_NAME_RECOGNIZE, eptrs, 4), onEvent == NULL);
 }
 
 /// <summary>
@@ -101,15 +85,14 @@ int Recognition::listenFor(EPtr constraint, bool useUI, int expectedConfidence, 
 /// </summary>
 /// <param name="text">The text to verify.</param>
 /// <returns>true if the text matches.</returns>
-bool Recognition::heard(String text)
+bool Recognition::heard(const char * text)
 {
 	const char* recognizedText = (const char*) this->openTextBuffer;
 
 	if (recognizedText) {
 		int length = this->length[0];
 		//recognized open text often ends with a period - do a comparison without.
-		const char* ctext = text.c_str();
-        return length > 0 && strncmp(ctext, recognizedText, length - (recognizedText[length - 1] == '.')) == 0;
+        return length > 0 && strncmp(text, recognizedText, length - (recognizedText[length - 1] == '.')) == 0;
 	}
 
     return false;
@@ -121,7 +104,14 @@ bool Recognition::heard(String text)
 /// <param name="text">The text to verify.</param>
 /// <returns>true if the text matches.</returns>
 bool Recognition::heard(int spokenNumber) {
-	return heard(String(spokenNumber));
+    const int length = this->length[0];
+    char * buffer = new char[length];
+    bool return_value = false;
+
+    snprintf(buffer, length, "%d", spokenNumber);
+	return_value = heard(buffer);
+    delete[] buffer;
+    return return_value;
 }
 
 /// <summary>
@@ -133,7 +123,7 @@ bool Recognition::heard(int spokenNumber) {
 void Recognition::onJsonReceived(JsonObject& root, ShieldEvent* shieldEvent)
 {
 	recognizedIndex = shieldEvent->resultId;
-	confidence = shieldEvent->value;
+	confidence = static_cast<int>(shieldEvent->value);
 
 	if (this->openTextBuffer)
 	{
