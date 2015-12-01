@@ -1,0 +1,6 @@
+[submodule "src/serial-wiring"]
+	path = src/serial-wiring
+	url = https://github.com/ms-iot/serial-wiring.git
+[submodule "src/time-wiring"]
+	path = src/time-wiring
+	url = https://github.com/ms-iot/time-wiring.git

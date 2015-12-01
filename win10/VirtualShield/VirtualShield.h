@@ -32,10 +32,10 @@
   #include <Arduino.h>
 #elif defined(_WINDOWS_)
   #define PROGMEM
-  #include "ISystemTime.h"
-  #include "..\..\serial-wiring\source\IStream.h"
-  using namespace Microsoft::Maker::Serial;
-#endif
+  #include "..\..\src\serial-wiring\source\IStream.h"
+  #include "..\..\src\time-wiring\Time.h"
+  using namespace Microsoft::Maker::Time;
+#endif // defined(ARDUINO)
 
 #include <ArduinoJson.h>
 
@@ -68,7 +68,7 @@ public:
     VirtualShield();
 
 	void begin(long bitRate = DEFAULT_BAUDRATE);
-	void setPort(int port);
+	//void setPort(int port);
 
 	bool hasError(ShieldEvent* shieldEvent = NULL);
 	bool checkSensors(int watchForId = 0, int32_t timeout = 0, int waitForResultId = -1);
@@ -123,7 +123,7 @@ public:
 	/// Enables or disables block() to block for specific id-based responses.
 	/// </summary>
 	void enableAutoBlocking(bool enable) {
-		this->allowAutoBlocking = enable; 
+		this->allowAutoBlocking = enable;
 	}
 
 	int parseToHash(const char* text, unsigned int *hash, int hashCount, char separator = ' ', unsigned int length = -1);
@@ -137,10 +137,10 @@ protected:
 
 	void flush();
 
-#if defined(ARDUINO) && ARDUINO > 100
+#if defined(ARDUINO) && ARDUINO >= 100
     Stream* _VShieldSerial;
-#else
-    IStream* _VShieldSerial;
+#elif defined(_WINDOWS_)
+    Microsoft::Maker::Serial::IStream* _VShieldSerial;
 #endif
 
 private:
@@ -154,4 +154,4 @@ private:
     bool processInChar(ShieldEvent* shieldEvent, bool& hasEvent, char c);
 };
 
-#endif 
+#endif

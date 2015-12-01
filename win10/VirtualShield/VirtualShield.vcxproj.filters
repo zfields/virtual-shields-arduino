@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="VirtualShield.cpp" />
+    <ClCompile Include="Accelerometer.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Compass.cpp" />
+    <ClCompile Include="Email.cpp" />
+    <ClCompile Include="Geolocator.cpp" />
+    <ClCompile Include="Graphics.cpp" />
+    <ClCompile Include="Gyrometer.cpp" />
+    <ClCompile Include="LightSensor.cpp" />
+    <ClCompile Include="Media.cpp" />
+    <ClCompile Include="Microphone.cpp" />
+    <ClCompile Include="Notification.cpp" />
+    <ClCompile Include="Orientation.cpp" />
+    <ClCompile Include="Recognition.cpp" />
+    <ClCompile Include="Sensor.cpp" />
+    <ClCompile Include="Sms.cpp" />
+    <ClCompile Include="Speech.cpp" />
+    <ClCompile Include="Text.cpp" />
+    <ClCompile Include="Vibrate.cpp" />
+    <ClCompile Include="Web.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="VirtualShield.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="Accelerometer.h" />
+    <ClInclude Include="Attr.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Colors.h" />
+    <ClInclude Include="Compass.h" />
+    <ClInclude Include="Email.h" />
+    <ClInclude Include="Geolocator.h" />
+    <ClInclude Include="Graphics.h" />
+    <ClInclude Include="Gyrometer.h" />
+    <ClInclude Include="ISystemTime.h" />
+    <ClInclude Include="LightSensor.h" />
+    <ClInclude Include="Media.h" />
+    <ClInclude Include="Microphone.h" />
+    <ClInclude Include="Notification.h" />
+    <ClInclude Include="Orientation.h" />
+    <ClInclude Include="Recognition.h" />
+    <ClInclude Include="Sensor.h" />
+    <ClInclude Include="SensorModels.h" />
+    <ClInclude Include="ShieldEvent.h" />
+    <ClInclude Include="Sms.h" />
+    <ClInclude Include="Speech.h" />
+    <ClInclude Include="Text.h" />
+    <ClInclude Include="Vibrate.h" />
+    <ClInclude Include="Web.h" />
+  </ItemGroup>
+</Project>
